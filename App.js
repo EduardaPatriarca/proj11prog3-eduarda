@@ -1,9 +1,47 @@
 import React, { useState } from 'react';
 import { Text, View, Image, ActivityIndicator, Alert, ScrollView, TouchableOpacity } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system';
 
 const CLOUD_NAME = 'lqgvsfnq';
 const UPLOAD_PRESET = 'cloudinary-proj11';
+
+const getArquivoUpload = async (arquivo) => {
+  if (!arquivo?.uri) {
+    throw new Error('Imagem inválida (//_-) !');
+  }
+
+  const extensao = 
+    (arquivo.fileName?.split('.').pop() || 'jpg').toLowerCase();
+
+  const tipo = 
+    arquivo.mimeType || arquivo.type || 'image/jpeg';
+
+  const nomeArquivo = 
+    arquivo.fileName || `upload-${Date.now()}.${extensao}`;
+
+  if (arquivo.uri.startsWith('file://')) {
+    return {
+      uri: arquivo.uri,
+      type: tipo,
+      name: nomeArquivo,
+    };
+  }
+
+  const destino = 
+    `${FileSystem.cacheDirectory}${Date.now()}-${nomeArquivo}`;
+
+  await FileSystem.copyAsync({
+    from: arquivo.uri,
+    to: destino,
+  });
+
+  return {
+    uri: destino,
+    type: tipo,
+    name: nomeArquivo,
+  };
+};
 
 export default function UploadImagem() {
   const [imagem, setImagem] = useState(null);
@@ -21,18 +59,16 @@ export default function UploadImagem() {
   };
 
   const enviarCloudinary = async () => {
-    if (!imagem) return Alert.alert('Atenção', 'Escolha uma imagem:');
+    if (!imagem) return Alert.alert('Atenção !!!', 'Escolha uma imagem (//_-) !:');
 
     try {
       setEnviando(true);
 
+      const arquivoUpload = await getArquivoUpload(imagem);
+
       const formData = new FormData();
 
-      formData.append('file', {
-        uri: imagem.uri,
-        type: imagem.type || 'image/jpeg',
-        name: imagem.fileName || 'image.jpg',
-      });
+      formData.append('file', arquivoUpload);
 
       formData.append('upload_preset', UPLOAD_PRESET);
 
@@ -41,33 +77,38 @@ export default function UploadImagem() {
         {
           method: 'POST',
           body: formData,
-          headers: { Accept: 'application/json' },
+          headers: {
+            Accept: 'application/json',
+          },
         }
       );
 
       const data = await resposta.json();
 
-      if (!resposta.ok) 
+      if (!resposta.ok) {
         throw new Error(data?.error?.message || 'Erro no upload');
+      }
 
-      setImagens( (lista) => [
+      setImagens((lista) => [
         {
-          id: data.public_id, 
+          id: data.public_id,
           url: data.secure_url,
         },
         ...lista,
       ]);
 
       setImagem(null);
-
-      Alert.alert('Sucesso', 'Imagem enviada!');
+      
+      Alert.alert('Uau uau', 'Imagem enviada! >w<');
 
     } catch (error) {
+      
+      console.log('Erro ao enviar imagem:', error);
 
       Alert.alert('Erro', error?.message || 'Erro desconhecido');
 
     } finally {
-
+     
       setEnviando(false);
 
     }
@@ -78,7 +119,7 @@ export default function UploadImagem() {
       onPress = {onPress}
       disabled = {disabled}
       style = {{
-        backgroundColor: '#111',
+        backgroundColor: '#f45d76',
         paddingVertical: 15,
         borderRadius: 12,
         alignItems: 'center',
@@ -87,7 +128,7 @@ export default function UploadImagem() {
       >
       <Text
         style = {{
-          color: '#fff',
+          color: '#ffd9df',
           fontSize: 16,
           fontWeight: '600'
         }}
@@ -101,19 +142,23 @@ export default function UploadImagem() {
     <ScrollView contentContainerStyle={{ 
         padding: 20, 
         paddingTop: 60, 
-        paddingBottom: 60, 
+        paddingBottom: 60,
+        backgroundColor: '#f8d0d0',
+        height: '100%',
+        gap: 10
       }}
     >
-      <Text style = {{ fontSize: 26, fontWeight: 'bold', marginBottom: 25, }}>
+      <Text style = {{ fontSize: 26, fontWeight: 'bold', marginBottom: 25, alignSelf: 'center' }}>
         Upload de Imagens
       </Text>
 
       <Botao titulo="Escolher imagem" onPress={escolherImagem} />
 
       {imagem && (
-        <View style = {{ marginTop: 25 }}>
-          <Text style={{ fontSize: 16, fontWeight: '600' }}>
-            Imagem Selecionada
+        <View style = {{ marginTop: 25, gap: 10 }}>
+          
+          <Text style={{ fontSize: 16, fontWeight: '600', color: '#f17e91' }}>
+            Imagem Escolhida (^ w ^) 
           </Text>
 
           <Image
@@ -126,7 +171,7 @@ export default function UploadImagem() {
           />
 
           <Botao
-            titulo = {enviando ? 'Enviando...' : 'Enviar imagem'}
+            titulo = {enviando ? 'Enviando.....' : 'Enviar imagem'}
             onPress = {enviarCloudinary}
             disabled = {enviando}
           />
@@ -144,6 +189,7 @@ export default function UploadImagem() {
           <Text style={{ marginTop: 8 }}>
             Enviando imagens
           </Text>
+
         </View>
       )}
 
@@ -153,22 +199,22 @@ export default function UploadImagem() {
             marginTop: 40
           }}
         >
-          <Text style = {{ fontSize: 22, fontWeight: 'bold' }}>
-            Imagens adicionadas
+          <Text style = {{ fontSize: 22, fontWeight: 'bold', color: '#f9667f' }}>
+            (ദ്ദി˙ᗜ˙) Imagens adicionadas (ദ്ദി˙ᗜ˙)
           </Text>
 
-          <Text style = {{ opacity: 0.6, marginVertical: 8 }}>
+          <Text style = {{ opacity: 0.6, marginVertical: 8, color: '#d1334d' }}>
             {imagens.length} {imagens.length === 1 ? 'imagem' : 'imagens'}
           </Text>
 
           <View
             style = {{
-              flexDirection: 'row',
+              flexDirection: 'column',
               flexWrap: 'wrap',
-              justifyContent: 'space-between',
+              gap: 15,
             }}
           >
-            {imagens.map ( (item) => (
+            {imagens.map ((item) => (
               <Image 
                 key = {item.id}
                 source = {{ uri: item.url }}
@@ -180,7 +226,7 @@ export default function UploadImagem() {
               />
             ))}
           </View>
-
+            
         </View>
       )};
 
