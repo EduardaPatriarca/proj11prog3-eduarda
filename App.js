@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Text, View, Image, ActivityIndicator, Alert, ScrollView, TouchableOpacity } from 'react-native';
+import { Text, View, Image, ActivityIndicator, Alert, ScrollView, TouchableOpacity, FlatList } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system';
 
@@ -114,6 +114,46 @@ export default function UploadImagem() {
     }
   };
 
+  const apagarImagem = async (publicId) => {
+    try {
+      const tempo = Math.floor(Date.now()/1000);
+
+      const assinatura = SHA1(
+        `public_id = ${publicId} & tempo = ${tempo}${A}`
+      )
+
+      const formData = new FormData();
+
+      formData.append('public_id', publicId);
+      formData.append('tempo', tempo);
+
+      const deletar = await fetch(
+        `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/destroy`,
+
+        {
+          method: 'POST',
+          body: formData,
+          headers: {
+            Accept: 'application/json',
+          }
+        }
+      );
+
+      const resultado = await deletar.json();
+      console.log('Deletar resultado', resultado);
+
+      if (resultado.ok){
+        setImagens((prev) => prev.filter((img) => img.public_id !== publicId));
+        Alert.alert('Uau uau','Imagem deletada com sucesso!! >w<');
+      }else {
+        alert("Erro ao deletar no Cloudinary (-_-)...")
+      }
+    } catch (error){
+      console.log('Erro ao exluir', error);
+      Alert.alert('Erro', error?.message || 'Erro não reconhecido');
+    }
+  }
+
   const Botao = ({ titulo, onPress, disabled }) => (
     <TouchableOpacity
       onPress = {onPress}
@@ -137,6 +177,33 @@ export default function UploadImagem() {
       </Text>
     </TouchableOpacity>
   )
+
+    const BtApagar = ({ titulo, onPress, disabled }) => (
+    <TouchableOpacity
+      onPress = {apagarImagem}
+      disabled = {disabled}
+      style = {{
+        backgroundColor: '#f45d76',
+        paddingVertical: 15,
+        borderRadius: 12,
+        alignItems: 'center',
+        opacity: disabled ? 0.5 : 1,
+        height: 60,
+        width: 150,
+        margin: 5
+      }}
+      >
+      <Text
+        style = {{
+          color: '#ffd9df',
+          fontSize: 16,
+          fontWeight: '600'
+        }}
+      >
+        Apagar Imagem
+      </Text>
+    </TouchableOpacity>
+  )
   
   return (
     <ScrollView contentContainerStyle={{ 
@@ -145,7 +212,7 @@ export default function UploadImagem() {
         paddingBottom: 60,
         backgroundColor: '#f8d0d0',
         height: '100%',
-        gap: 10
+        gap: 10,
       }}
     >
       <Text style = {{ fontSize: 26, fontWeight: 'bold', marginBottom: 25, alignSelf: 'center' }}>
@@ -158,7 +225,7 @@ export default function UploadImagem() {
         <View style = {{ marginTop: 25, gap: 10 }}>
           
           <Text style={{ fontSize: 16, fontWeight: '600', color: '#f17e91' }}>
-            Imagem Escolhida (^ w ^) 
+            Imagem Escolhida (^ w ^)
           </Text>
 
           <Image
@@ -196,7 +263,8 @@ export default function UploadImagem() {
       {imagens.length > 0 && (
         <View
           style = {{
-            marginTop: 40
+            marginTop: 40,
+            flexDirection: 'column'
           }}
         >
           <Text style = {{ fontSize: 22, fontWeight: 'bold', color: '#f9667f' }}>
@@ -207,25 +275,30 @@ export default function UploadImagem() {
             {imagens.length} {imagens.length === 1 ? 'imagem' : 'imagens'}
           </Text>
 
-          <View
-            style = {{
-              flexDirection: 'column',
-              flexWrap: 'wrap',
-              gap: 15,
-            }}
-          >
-            {imagens.map ((item) => (
-              <Image 
-                key = {item.id}
-                source = {{ uri: item.url }}
-                style = {{
-                  width: '48%',
-                  height: 160,
-                  borderRadius: 12,
-                }}
-              />
-            ))}
-          </View>
+          <FlatList
+            data={imagens}
+            KeyExtractor = {(item) => item.public_id}
+            renderItem = {({ item }) => (
+              <View style={{
+                flexDirection: 'row',
+                flexWrap: 'wrap',
+                gap: 15,
+              }}>
+                <Image
+                  source = {{
+                    uri: item.url,
+                  }}
+                  style = {{
+                    width: '48%',
+                    height: 160,
+                    borderRadius: 12,
+                    margin: 3
+                  }}
+                />
+                <BtApagar/>
+              </View>
+            )}
+          />
             
         </View>
       )};
