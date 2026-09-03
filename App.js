@@ -11,10 +11,10 @@ const getArquivoUpload = async (arquivo) => {
     throw new Error('Imagem inválida (//_-) !');
   }
 
-  const extensao = 
+  const extensao =
     (arquivo.fileName?.split('.').pop() || 'jpg').toLowerCase();
 
-  const tipo = 
+  const tipo =
     arquivo.mimeType || arquivo.type || 'image/jpeg';
 
   const nomeArquivo = 
@@ -28,7 +28,7 @@ const getArquivoUpload = async (arquivo) => {
     };
   }
 
-  const destino = 
+  const destino =
     `${FileSystem.cacheDirectory}${Date.now()}-${nomeArquivo}`;
 
   await FileSystem.copyAsync({
@@ -108,24 +108,18 @@ export default function UploadImagem() {
       Alert.alert('Erro', error?.message || 'Erro desconhecido');
 
     } finally {
-     
       setEnviando(false);
-
     }
   };
 
   const apagarImagem = async (publicId) => {
     try {
-      const tempo = Math.floor(Date.now()/1000);
-
-      const assinatura = SHA1(
-        `public_id = ${publicId} & tempo = ${tempo}${A}`
-      )
 
       const formData = new FormData();
 
       formData.append('public_id', publicId);
-      formData.append('tempo', tempo);
+      formData.append('upload_preset', UPLOAD_PRESET);
+      formData.append('cloud_name', CLOUD_NAME);
 
       const deletar = await fetch(
         `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/destroy`,
@@ -133,17 +127,15 @@ export default function UploadImagem() {
         {
           method: 'POST',
           body: formData,
-          headers: {
-            Accept: 'application/json',
-          }
         }
       );
 
       const resultado = await deletar.json();
       console.log('Deletar resultado', resultado);
 
-      if (resultado.ok){
+      if (resultado.result === 'ok'){
         setImagens((prev) => prev.filter((img) => img.public_id !== publicId));
+        setImagem((prev) => prev.filter((img) => img.public_id !== publicId));
         Alert.alert('Uau uau','Imagem deletada com sucesso!! >w<');
       }else {
         alert("Erro ao deletar no Cloudinary (-_-)...")
@@ -178,16 +170,14 @@ export default function UploadImagem() {
     </TouchableOpacity>
   )
 
-    const BtApagar = ({ titulo, onPress, disabled }) => (
+    const BtApagar = () => (
     <TouchableOpacity
       onPress = {apagarImagem}
-      disabled = {disabled}
       style = {{
         backgroundColor: '#f45d76',
         paddingVertical: 15,
         borderRadius: 12,
         alignItems: 'center',
-        opacity: disabled ? 0.5 : 1,
         height: 60,
         width: 150,
         margin: 5
